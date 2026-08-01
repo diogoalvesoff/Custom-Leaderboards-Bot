@@ -37,7 +37,7 @@ class PtsCog(commands.GroupCog, group_name="pts", group_description="Administrat
         await interaction.response.send_message(f"✅ Added **{points}** points to {user.mention} in {leaderboard.name}.✅\nCurrent Points: **{new_total}**.", ephemeral=True)
         
         bot_commands_channel = interaction.guild.get_channel(CHANNEL_IDS["BOT_COMMANDS_CHANNEL"])
-        if not self.bot_commands_channel:
+        if not bot_commands_channel:
             print ("I could not find Bot Commands Channel")
             return
         await bot_commands_channel.send(f"✅ Added **{points}** points to {user.mention} in {leaderboard.name}.✅\nCurrent Points: **{new_total}**.")
@@ -51,10 +51,10 @@ class PtsCog(commands.GroupCog, group_name="pts", group_description="Administrat
             return await interaction.response.send_message("❌ The value to remove must be higher then 0 ❌", ephemeral=True)
             
         new_total = await db_handler.update_user_points(user.id, leaderboard.value, -points)
-        await interaction.response.send_message(f"✅ Removed **{points}** points from {user.display_name} in {leaderboard.name}.✅\nCurrent Points: **{new_total}**.")
+        await interaction.response.send_message(f"✅ Removed **{points}** points from {user.display_name} in {leaderboard.name}.✅\nCurrent Points: **{new_total}**.", ephemeral=True)
 
         bot_commands_channel = interaction.guild.get_channel(CHANNEL_IDS["BOT_COMMANDS_CHANNEL"])
-        if not self.bot_commands_channel:
+        if not bot_commands_channel:
             print ("I could not find Bot Commands Channel")
             return
         await bot_commands_channel.send(f"✅ Removed **{points}** points from {user.display_name} in {leaderboard.name}.✅\nCurrent Points: **{new_total}**.")
@@ -68,10 +68,10 @@ class PtsCog(commands.GroupCog, group_name="pts", group_description="Administrat
             return await interaction.response.send_message("❌ Points can't be negative ❌", ephemeral=True)
             
         await db_handler.set_user_points(user.id, leaderboard.value, points)
-        await interaction.response.send_message(f"🎯 Points from {user.mention} in {leaderboard.name} got set to **{points}**.")
+        await interaction.response.send_message(f"🎯 Points from {user.mention} in {leaderboard.name} got set to **{points}**.", ephemeral=True)
 
         bot_commands_channel = interaction.guild.get_channel(CHANNEL_IDS["BOT_COMMANDS_CHANNEL"])
-        if not self.bot_commands_channel:
+        if not bot_commands_channel:
             print ("I could not find Bot Commands Channel")
             return
         await bot_commands_channel.send(f"🎯 Points from {user.mention} in {leaderboard.name} got set to **{points}**.")
