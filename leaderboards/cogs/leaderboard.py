@@ -29,7 +29,7 @@ class LeaderboardView(discord.ui.View):
         self.btn_leaderboard_next_page.disabled = current_page >= total_pages
 
     async def generate_page_embed(self, leaderboard_name: str, total_pages: int, current_page: int) -> discord.Embed:
-        offset = (self.current_page - 1) * 10
+        offset = (current_page - 1) * 10
         embed = discord.Embed(title=f"{LEADERBOARD_OPTIONS[leaderboard_name]}")
         embed.description = "Here are the top players."
         async with aiosqlite.connect(LEADERBOARD_DATABASE_PATH) as db:
