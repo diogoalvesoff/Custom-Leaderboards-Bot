@@ -2,7 +2,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from shared.hardcore_globals import GUILD_INFO
+from shared.hardcore_globals import GUILD_INFO, CHANNEL_IDS
 from leaderboards.leaderboards_constants import (
     SHARED_LEADERBOARD_CHOICES,
     ROLES_WITH_PERMS_TO_USE__PTS_ADD, ROLES_WITH_PERMS_TO_USE__PTS_REM, ROLES_WITH_PERMS_TO_USE__PTS_SET
@@ -34,7 +34,13 @@ class PtsCog(commands.GroupCog, group_name="pts", group_description="Administrat
             return await interaction.response.send_message("❌ The value to add must be higher then 0 ❌", ephemeral=True)
         
         new_total = await db_handler.update_user_points(user.id, leaderboard.value, points)
-        await interaction.response.send_message(f"✅ Added **{points}** points to {user.mention} in {leaderboard.name}.✅\nCurrent Points: **{new_total}**.")
+        await interaction.response.send_message(f"✅ Added **{points}** points to {user.mention} in {leaderboard.name}.✅\nCurrent Points: **{new_total}**.", ephemeral=True)
+        
+        bot_commands_channel = interaction.guild.get_channel(CHANNEL_IDS["BOT_COMMANDS_CHANNEL"])
+        if not self.bot_commands_channel:
+            print ("I could not find Bot Commands Channel")
+            return
+        await bot_commands_channel.send(f"✅ Added **{points}** points to {user.mention} in {leaderboard.name}.✅\nCurrent Points: **{new_total}**.")
 
     
     @app_commands.checks.has_any_role(*ROLES_WITH_PERMS_TO_USE__PTS_REM)
@@ -45,7 +51,13 @@ class PtsCog(commands.GroupCog, group_name="pts", group_description="Administrat
             return await interaction.response.send_message("❌ The value to remove must be higher then 0 ❌", ephemeral=True)
             
         new_total = await db_handler.update_user_points(user.id, leaderboard.value, -points)
-        await interaction.response.send_message(f"✅ Removed **{points}** points from {user.mention} in {leaderboard.name}.✅\nCurrent Points: **{new_total}**.")
+        await interaction.response.send_message(f"✅ Removed **{points}** points from {user.display_name} in {leaderboard.name}.✅\nCurrent Points: **{new_total}**.")
+
+        bot_commands_channel = interaction.guild.get_channel(CHANNEL_IDS["BOT_COMMANDS_CHANNEL"])
+        if not self.bot_commands_channel:
+            print ("I could not find Bot Commands Channel")
+            return
+        await bot_commands_channel.send(f"✅ Removed **{points}** points from {user.display_name} in {leaderboard.name}.✅\nCurrent Points: **{new_total}**.")
 
 
     @app_commands.checks.has_any_role(*ROLES_WITH_PERMS_TO_USE__PTS_SET)
@@ -57,6 +69,13 @@ class PtsCog(commands.GroupCog, group_name="pts", group_description="Administrat
             
         await db_handler.set_user_points(user.id, leaderboard.value, points)
         await interaction.response.send_message(f"🎯 Points from {user.mention} in {leaderboard.name} got set to **{points}**.")
+
+        bot_commands_channel = interaction.guild.get_channel(CHANNEL_IDS["BOT_COMMANDS_CHANNEL"])
+        if not self.bot_commands_channel:
+            print ("I could not find Bot Commands Channel")
+            return
+        await bot_commands_channel.send(f"🎯 Points from {user.mention} in {leaderboard.name} got set to **{points}**.")
+
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(PtsCog(bot), guild=GUILD_INFO["GUILD"])
