@@ -28,9 +28,9 @@ class LeaderboardView(discord.ui.View):
         self.btn_leaderboard_previous_page.disabled = current_page <= 1
         self.btn_leaderboard_next_page.disabled = current_page >= total_pages
 
-    async def generate_page_embed(self) -> discord.Embed:
+    async def generate_page_embed(self, leaderboard_name: str, total_pages: int, current_page: int) -> discord.Embed:
         offset = (self.current_page - 1) * 10
-        embed = discord.Embed(title=f"{LEADERBOARD_OPTIONS[self.leaderboard_name]}")
+        embed = discord.Embed(title=f"{LEADERBOARD_OPTIONS[leaderboard_name]}")
         embed.description = "Here are the top players."
         async with aiosqlite.connect(LEADERBOARD_DATABASE_PATH) as db:
             query = """
@@ -40,20 +40,20 @@ class LeaderboardView(discord.ui.View):
                 ORDER BY pts DESC
                 LIMIT 10 OFFSET ?
             """
-            async with db.execute(query, (LEADERBOARD_NAMES[self.leaderboard_name], offset)) as cursor:
+            async with db.execute(query, (LEADERBOARD_NAMES[leaderboard_name], offset)) as cursor:
                 resultados = await cursor.fetchall()
 
         text_lines = []
         for i, (user_id, pts) in enumerate(resultados):
             rank = i + offset + 1
-            text_lines.append(f"**{rank}** <@{user_id}> • {LEADERBOARD_EMOJIS[self.leaderboard_name]} {pts:,}")
+            text_lines.append(f"**{rank}** <@{user_id}> • {LEADERBOARD_EMOJIS[leaderboard_name]} {pts:,}")
         
         if not text_lines:
             embed.add_field(name="Empty", value="There are no players on this leaderboard yet.")
         else:
             embed.description = "\n".join(text_lines)
 
-        embed.set_footer(text=f"Page {self.current_page}/{self.total_pages}")
+        embed.set_footer(text=f"Page {current_page}/{total_pages}")
         return embed
 
     async def parse_embed_and_turn_page(self, interaction: discord.Interaction, step: int):
