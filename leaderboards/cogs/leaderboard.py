@@ -1,16 +1,22 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
+from discord.ui import Modal, TextInput
+import aiosqlite
+import math
+
 from shared.hardcore_globals import GUILD_INFO
 from leaderboards.leaderboards_constants import (
-    LEADERBOARD_DATABASE_PATH, LEADERBOARD_OPTIONS, LEADERBOARD_NAMES, LEADERBOARD_EMOJIS,
+    LEADERBOARD_DATABASE_PATH, LEADERBOARD_OPTIONS, LEADERBOARD_EMOJIS, LEADERBOARD_NAMES, SHARED_LEADERBOARD_CHOICES,
     ROLES_WITH_PERMS_TO_USE__LEADERBOARD_PRINT, ROLES_WITH_PERMS_TO_USE__LEADERBOARD_SET,
     BUTTON_LEADERBOARD_PREVIOUS_PAGE, BUTTON_LEADERBOARD_NEXT_PAGE,
 )
+from leaderboards import db_handler
+from leaderboards import leaderboard_rules
 
 """
 #################################################################################################################################
-#                                                            LEADERBOARD                                                        #
+#                                                         LEADERBOARD VIEW                                                      #
 #################################################################################################################################
 """
 
@@ -23,8 +29,8 @@ class LeaderboardView(discord.ui.View):
         self.update_buttons()
 
     def update_buttons(self):
-        self.btn_prev.disabled = self.current_page == 1
-        self.btn_next.disabled = self.current_page >= self.total_pages
+        self.btn_leaderboard_previous_page.disabled = self.current_page == 1
+        self.btn_leaderboard_next_page.disabled = self.current_page >= self.total_pages
 
     async def generate_page_embed(self) -> discord.Embed:
         offset = (self.current_page - 1) * 10
@@ -69,14 +75,84 @@ class LeaderboardView(discord.ui.View):
         await interaction.response.edit_message(embed=new_embed, view=self)
 
 
-class LeaderboardCog (commands.GroupCog, group_name="pts", group_description="Leaderboards management commands"):
+"""
+#################################################################################################################################
+#                                                               MODALS                                                          #
+#################################################################################################################################
+"""
+
+class BattleModeModal(Modal, title="Battle Mode Stats"):
+    kills = TextInput(label="Eliminations (Kills)", placeholder="Ex: 287", style=discord.TextStyle.short)
+    wins = TextInput(label="Total Wins", placeholder="Ex: 182", style=discord.TextStyle.short)
+    full_lobby_wins = TextInput(label="Full Lobby Wins", placeholder="Ex: 59", style=discord.TextStyle.short)
+
+    def __init__ (self, target_user: discord.Member):
+        super().__init__()
+        self.target_user = target_user
+
+    async def on_submit(self, interaction: discord.Interaction):
+        try:
+            k = int(self.kills.value)
+            w = int(self.wins.value)
+            fw = int(self.full_lobby_wins.value)
+        except ValueError:
+            return await interaction.response.send_message("❌ Please enter only valid integers ❌", ephemeral=True)
+
+        if fw > w:
+            return await interaction.response.send_message("❌ The number of 'Full Lobby Wins' cannot be greater than the number of 'Total Wins' ❌", ephemeral=True)
+        
+        points = leaderboard_rules.calc_battle_mode_points(k, w, fw)
+        await db_handler.set_user_points(self.target_user.id, "bm", points)
+        
+        await interaction.response.send_message(f"✅ The score for {self.target_user.mention} in **{LEADERBOARD_OPTIONS['bm']}** has been set to **{points}** ✅")
+
+class ModdedRunModal(Modal, title="Modded Run Stats"):
+    h_mods = TextInput(label="Hotel Modifier %", placeholder="Ex: 300", style=discord.TextStyle.short)
+    h_doors = TextInput(label="Hotel Doors Opened", placeholder="Ex: 100", style=discord.TextStyle.short)
+    m_mods = TextInput(label="Mines Modifier %", placeholder="Ex: 300", style=discord.TextStyle.short)
+    m_doors = TextInput(label="Mines Doors Opened", placeholder="Ex: 100", style=discord.TextStyle.short)
+
+    def __init__ (self, target_user: discord.Member):
+        super().__init__()
+        self.target_user = target_user
+
+    async def on_submit(self, interaction: discord.Interaction):
+        try:
+            hm = int(self.h_mods.value)
+            hd = int(self.h_doors.value)
+            mm = int(self.m_mods.value)
+            md = int(self.m_doors.value)
+        except ValueError:
+            return await interaction.response.send_message("❌ Please enter only valid integers ❌", ephemeral=True)
+
+        if hd > 100 or md > 100:
+            return await interaction.response.send_message("❌ It is not possible to open more than 100 doors on the same floor ❌", ephemeral=True)
+        
+        points = leaderboard_rules.calc_modded_run_points(hm, hd, mm, md)
+        await db_handler.set_user_points(self.target_user.id, "m", points)
+        
+        await interaction.response.send_message(f"✅ The score for {self.target_user.mention} in **{LEADERBOARD_OPTIONS['m']}** has been set to **{points}** ✅")
+
+
+"""
+#################################################################################################################################
+#                                                       LEADERBOARD COMMAND                                                     #
+#################################################################################################################################
+"""
+
+SET_LEADERBOARD_CHOICES = [
+    app_commands.Choice(name=LEADERBOARD_OPTIONS["bm"], value="bm"),
+    app_commands.Choice(name=LEADERBOARD_OPTIONS["m"], value="m")
+]
+
+class LeaderboardCog (commands.GroupCog, group_name="leaderboard", group_description="Leaderboards management commands"):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
     @app_commands.checks.has_any_role(*ROLES_WITH_PERMS_TO_USE__LEADERBOARD_PRINT)
-    @app_commands.command(name="print", description="print leaderboard", guild=GUILD_INFO["GUILD"])
+    @app_commands.command(name="print", description="print leaderboard")
     @app_commands.choices(leaderboard=SHARED_LEADERBOARD_CHOICES)
-    async def leaderboard_print(interaction: discord.Interaction, leaderboard: app_commands.Choice[str]):
+    async def leaderboard_print(self, interaction: discord.Interaction, leaderboard: app_commands.Choice[str]):
         await interaction.response.defer()
 
         async with aiosqlite.connect(LEADERBOARD_DATABASE_PATH) as db:
@@ -92,10 +168,20 @@ class LeaderboardCog (commands.GroupCog, group_name="pts", group_description="Le
             await interaction.followup.send(embed=initial_embed, view=view)
 
     @app_commands.checks.has_any_role(*ROLES_WITH_PERMS_TO_USE__LEADERBOARD_SET)
-    @app_commands.command(name="set", description="Defines a user's points for a leaderboard, according to that leaderboard's rules.", guild=GUILD_INFO["GUILD"])
-    @app_commands.choices(leaderboard=SHARED_LEADERBOARD_CHOICES)
-    async def leaderboard_set(interaction: discord.Interaction, leaderboard: app_commands.Choice[str], user: discord.Member):
-        pass
+    @app_commands.command(name="set", description="Defines a user's points for a leaderboard, according to that leaderboard's rules.")
+    @app_commands.choices(leaderboard=SET_LEADERBOARD_CHOICES)
+    async def leaderboard_set(self, interaction: discord.Interaction, leaderboard: app_commands.Choice[str], user: discord.Member):
+        if leaderboard.value == "bm":
+            modal = BattleModeModal(target_user=user)
+            await interaction.response.send_modal(modal)
+            return
+        
+        if leaderboard.value == "m":
+            modal = ModdedRunModal(target_user=user)
+            await interaction.response.send_modal(modal)
+            return
+
+        await interaction.response.send_message("❌ The leaderboard you selected is not supported by this command ❌\nUse /pts instead")
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(LeaderboardCog(bot), guild=GUILD_INFO["GUILD"])

@@ -10,13 +10,10 @@ import asyncio
 from shared.hardcore_globals import GUILD_INFO, ROLE_IDS, CHANNEL_IDS
 from leaderboards.leaderboards_constants import (
     COOLDOWN, DELAY_BEFORE_DELETING_MESSAGE,
-    LEADERBOARD_DATABASE_PATH, LEADERBOARD_OPTIONS, LEADERBOARD_EMOJIS, LEADERBOARD_NAMES, SHARED_LEADERBOARD_CHOICES,
-    ROLES_WITH_PERMS_TO_USE__LEADERBOARD_PRINT, ROLES_WITH_PERMS_TO_USE__LEADERBOARD_SET,
-    ROLES_WITH_PERMS_TO_USE__PTS_ADD, ROLES_WITH_PERMS_TO_USE__PTS_REM, ROLES_WITH_PERMS_TO_USE__PTS_SET,
-    ROLES_WITH_PERMS_TO__CLOSE_A_BATTLE_THREAD, ROLES_WITH_PERMS_TO__LOCK_A_BATTLE_THREAD, ROLES_WITH_PERMS_TO__UNLOCK_A_BATTLE_THREAD, ROLES_WITH_PERMS_TO__TALK_IN_BATTLE_CHANNEL,
-    BUTTON_BATTLE_JOIN_THREAD, BUTTON_BATTLE_CLOSE_THREAD, BUTTON_BATTLE_LOCK_THREAD, BUTTON_BATTLE_UNLOCK_THREAD, BUTTON_LEADERBOARD_PREVIOUS_PAGE, BUTTON_LEADERBOARD_NEXT_PAGE,
-    EMBED_BATTLE_THREAD
+    LEADERBOARD_DATABASE_PATH,
+    ROLES_WITH_PERMS_TO__TALK_IN_BATTLE_CHANNEL
 )
+from leaderboards.cogs.battle import ChallengeView, CloseThreadView
 
 load_dotenv()
 TOKEN = os.getenv('TOKEN')
@@ -106,7 +103,7 @@ async def on_app_command_error(interaction: discord.Interaction, error: app_comm
 
 """
 #################################################################################################################################
-#                                                               COMANDOS                                                        #
+#                                                               COMMANDS                                                        #
 #################################################################################################################################
 
 1. /battle [title] [description]
@@ -118,40 +115,6 @@ async def on_app_command_error(interaction: discord.Interaction, error: app_comm
 6. /pts set [user] [leaderboard] [points]
 """
 
-
-"""
-#################################################################################################################################
-#                                                                PTS                                                            #
-#################################################################################################################################
-"""
-
-pts_group = app_commands.Group(name="pts", description="points management commands", guild_ids=[GUILD_INFO["GUILD_ID"]])
-
-# 3. /pts see [user]
-@pts_group.command(name="see", description="View a user's points.")
-async def pts_see(interaction: discord.Interaction, user: discord.Member = None):
-    pass
-
-# 4. /pts add [user] [leaderboard] [points]
-@app_commands.checks.has_any_role(*ROLES_WITH_PERMS_TO_USE__PTS_ADD)
-@pts_group.command(name="add", description="Adds points to a user")
-@app_commands.choices(leaderboard=SHARED_LEADERBOARD_CHOICES)
-async def pts_add(interaction: discord.Interaction, user: discord.Member, leaderboard: app_commands.Choice[str], points: int):
-    pass
-
-# 5. /pts rem [user] [leaderboard] [points]
-@app_commands.checks.has_any_role(*ROLES_WITH_PERMS_TO_USE__PTS_REM)
-@pts_group.command(name="rem", description="Removes points from a user")
-@app_commands.choices(leaderboard=SHARED_LEADERBOARD_CHOICES)
-async def pts_rem(interaction: discord.Interaction, user: discord.Member, leaderboard: app_commands.Choice[str], points: int):
-    pass
-
-# 6. /pts set [user] [leaderboard] [points]
-@app_commands.checks.has_any_role(*ROLES_WITH_PERMS_TO_USE__PTS_SET)
-@pts_group.command(name="set", description="Set a player's points")
-@app_commands.choices(leaderboard=SHARED_LEADERBOARD_CHOICES)
-async def pts_set(interaction: discord.Interaction, user: discord.Member, leaderboard: app_commands.Choice[str], points: int):
-    pass
 
 """
 #################################################################################################################################
