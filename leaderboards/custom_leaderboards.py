@@ -14,6 +14,7 @@ from leaderboards.leaderboards_constants import (
     ROLES_WITH_PERMS_TO__TALK_IN_BATTLE_CHANNEL
 )
 from leaderboards.cogs.battle import ChallengeView, CloseThreadView
+from leaderboards.cogs.leaderboard import LeaderboardView
 
 load_dotenv()
 TOKEN = os.getenv('TOKEN')
@@ -43,6 +44,7 @@ class Client (commands.Bot):
     async def setup_hook(self) -> None:
         self.add_view(ChallengeView())
         self.add_view(CloseThreadView())
+        self.add_view(LeaderboardView())
         await setup_db()
         await self.load_extension("leaderboards.cogs.battle")
         await self.load_extension("leaderboards.cogs.leaderboard")

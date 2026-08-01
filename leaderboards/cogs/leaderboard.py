@@ -21,16 +21,12 @@ from leaderboards import leaderboard_rules
 """
 
 class LeaderboardView(discord.ui.View):
-    def __init__(self, leaderboard_name: str, total_pages: int, current_page: int = 1):
+    def __init__(self):
         super().__init__(timeout=None)
-        self.leaderboard_name = leaderboard_name
-        self.total_pages = total_pages
-        self.current_page = current_page
-        self.update_buttons()
 
-    def update_buttons(self):
-        self.btn_leaderboard_previous_page.disabled = self.current_page == 1
-        self.btn_leaderboard_next_page.disabled = self.current_page >= self.total_pages
+    def update_buttons(self, current_page: int, total_pages: int):
+        self.btn_leaderboard_previous_page.disabled = current_page <= 1
+        self.btn_leaderboard_next_page.disabled = current_page >= total_pages
 
     async def generate_page_embed(self) -> discord.Embed:
         offset = (self.current_page - 1) * 10
@@ -60,19 +56,38 @@ class LeaderboardView(discord.ui.View):
         embed.set_footer(text=f"Page {self.current_page}/{self.total_pages}")
         return embed
 
+    async def parse_embed_and_turn_page(self, interaction: discord.Interaction, step: int):
+        message = interaction.message
+        if not message.embeds:
+            return await interaction.response.send_message("❌ Could not read embed data ❌", ephemeral=True)
+
+        embed = message.embeds[0]
+        lb_code = next((k for k, v in LEADERBOARD_OPTIONS.items() if v == embed.title), None)
+        if not lb_code:
+            return await interaction.response.send_message("❌ Leaderboard not found ❌", ephemeral=True)
+
+        try:
+            pages_str = embed.footer.text.replace("Page ", "").split("/")
+            current_page = int(pages_str[0])
+            total_pages = int(pages_str[1])
+        except Exception:
+            return await interaction.response.send_message("❌ Could not read page info ❌", ephemeral=True)
+
+        new_page = current_page + step
+        self.update_buttons(new_page, total_pages)
+        new_embed = await self.generate_page_embed(lb_code, total_pages, new_page)
+        await interaction.response.edit_message(embed=new_embed, view=self)
+
+
+
+
     @discord.ui.button(label=BUTTON_LEADERBOARD_PREVIOUS_PAGE["label"], style=BUTTON_LEADERBOARD_PREVIOUS_PAGE["style"], custom_id=BUTTON_LEADERBOARD_PREVIOUS_PAGE["cid"])
     async def btn_leaderboard_previous_page (self, interaction: discord.Interaction, button: discord.ui.Button):
-        self.current_page -= 1
-        self.update_buttons()
-        new_embed = await self.generate_page_embed()
-        await interaction.response.edit_message(embed=new_embed, view=self)
+        await self.parse_embed_and_turn_page(interaction, -1)
 
     @discord.ui.button(label=BUTTON_LEADERBOARD_NEXT_PAGE["label"], style=BUTTON_LEADERBOARD_NEXT_PAGE["style"], custom_id=BUTTON_LEADERBOARD_NEXT_PAGE["cid"])
     async def btn_leaderboard_next_page (self, interaction: discord.Interaction, button: discord.ui.Button):
-        self.current_page += 1
-        self.update_buttons()
-        new_embed = await self.generate_page_embed()
-        await interaction.response.edit_message(embed=new_embed, view=self)
+        await self.parse_embed_and_turn_page(interaction, 1)
 
 
 """
@@ -163,8 +178,9 @@ class LeaderboardCog (commands.GroupCog, group_name="leaderboard", group_descrip
                 return
 
             total_pages = math.ceil(total_players / 10)
-            view = LeaderboardView(leaderboard_name=leaderboard.value, total_pages=total_pages, current_page=1)
-            initial_embed = await view.generate_page_embed()
+            view = LeaderboardView()
+            view.update_buttons(current_page=1, total_pages=total_pages)
+            initial_embed = await view.generate_page_embed(leaderboard.value, total_pages, 1)
             await interaction.followup.send(embed=initial_embed, view=view)
 
     @app_commands.checks.has_any_role(*ROLES_WITH_PERMS_TO_USE__LEADERBOARD_SET)
