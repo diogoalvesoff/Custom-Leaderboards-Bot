@@ -164,12 +164,12 @@ class ModdedRunModal(Modal, title="Modded Run Stats"):
         if not bot_commands_channel:
             print ("I could not find Bot Commands Channel")
             return
-        await bot_commands_channel.send(f"✅ Added **{points}** points to {user.mention} in {leaderboard.name}.✅\nCurrent Points: **{new_total}**.")
+        await bot_commands_channel.send(f"✅ The score for {self.target_user.mention} in **{LEADERBOARD_OPTIONS['m']}** has been set to **{points}** ✅")
         leaderboard_logs_channel = interaction.guild.get_channel(CHANNEL_IDS["LEADERBOARD_LOG_CHANNEL"])
         if not leaderboard_logs_channel:
             print ("I could not find Leaderboard Log Channel")
             return
-        await leaderboard_logs_channel.send(f"✅ Added **{points}** points to {user.mention} in {leaderboard.name}.✅\nCurrent Points: **{new_total}**.")
+        await leaderboard_logs_channel.send(f"✅ The score for {self.target_user.mention} in **{LEADERBOARD_OPTIONS['m']}** has been set to **{points}** ✅")
 
 
 """
