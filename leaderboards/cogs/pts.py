@@ -41,6 +41,11 @@ class PtsCog(commands.GroupCog, group_name="pts", group_description="Administrat
             print ("I could not find Bot Commands Channel")
             return
         await bot_commands_channel.send(f"✅ Added **{points}** points to {user.mention} in {leaderboard.name}.✅\nCurrent Points: **{new_total}**.")
+        leaderboard_logs_channel = interaction.guild.get_channel(CHANNEL_IDS["LEADERBOARD_LOG_CHANNEL"])
+        if not leaderboard_logs_channel:
+            print ("I could not find Leaderboard Log Channel")
+            return
+        await leaderboard_logs_channel.send(f"✅ Added **{points}** points to {user.mention} in {leaderboard.name}.✅\nCurrent Points: **{new_total}**.")
 
     
     @app_commands.checks.has_any_role(*ROLES_WITH_PERMS_TO_USE__PTS_REM)
@@ -58,6 +63,11 @@ class PtsCog(commands.GroupCog, group_name="pts", group_description="Administrat
             print ("I could not find Bot Commands Channel")
             return
         await bot_commands_channel.send(f"✅ Removed **{points}** points from {user.display_name} in {leaderboard.name}.✅\nCurrent Points: **{new_total}**.")
+        leaderboard_logs_channel = interaction.guild.get_channel(CHANNEL_IDS["LEADERBOARD_LOG_CHANNEL"])
+        if not leaderboard_logs_channel:
+            print ("I could not find Leaderboard Log Channel")
+            return
+        await leaderboard_logs_channel.send(f"✅ Added **{points}** points to {user.mention} in {leaderboard.name}.✅\nCurrent Points: **{new_total}**.")
 
 
     @app_commands.checks.has_any_role(*ROLES_WITH_PERMS_TO_USE__PTS_SET)
@@ -75,6 +85,11 @@ class PtsCog(commands.GroupCog, group_name="pts", group_description="Administrat
             print ("I could not find Bot Commands Channel")
             return
         await bot_commands_channel.send(f"🎯 Points from {user.mention} in {leaderboard.name} got set to **{points}**.")
+        leaderboard_logs_channel = interaction.guild.get_channel(CHANNEL_IDS["LEADERBOARD_LOG_CHANNEL"])
+        if not leaderboard_logs_channel:
+            print ("I could not find Leaderboard Log Channel")
+            return
+        await leaderboard_logs_channel.send(f"✅ Added **{points}** points to {user.mention} in {leaderboard.name}.✅\nCurrent Points: **{new_total}**.")
 
 
 async def setup(bot: commands.Bot):

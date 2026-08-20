@@ -5,7 +5,7 @@ from discord.ui import Modal, TextInput
 import aiosqlite
 import math
 
-from shared.hardcore_globals import GUILD_INFO
+from shared.hardcore_globals import GUILD_INFO, CHANNEL_IDS
 from leaderboards.leaderboards_constants import (
     LEADERBOARD_DATABASE_PATH, LEADERBOARD_OPTIONS, LEADERBOARD_EMOJIS, LEADERBOARD_NAMES, SHARED_LEADERBOARD_CHOICES,
     ROLES_WITH_PERMS_TO_USE__LEADERBOARD_PRINT, ROLES_WITH_PERMS_TO_USE__LEADERBOARD_SET,
@@ -119,7 +119,19 @@ class BattleModeModal(Modal, title="Battle Mode Stats"):
         points = leaderboard_rules.calc_battle_mode_points(k, w, fw)
         await db_handler.set_user_points(self.target_user.id, "bm", points)
         
-        await interaction.response.send_message(f"✅ The score for {self.target_user.mention} in **{LEADERBOARD_OPTIONS['bm']}** has been set to **{points}** ✅")
+        await interaction.response.send_message(f"✅ The score for {self.target_user.mention} in **{LEADERBOARD_OPTIONS['bm']}** has been set to **{points}** ✅", ephemeral=True)
+
+        bot_commands_channel = interaction.guild.get_channel(CHANNEL_IDS["BOT_COMMANDS_CHANNEL"])
+        if not bot_commands_channel:
+            print ("I could not find Bot Commands Channel")
+            return
+        await bot_commands_channel.send(f"✅ Added **{points}** points to {user.mention} in {leaderboard.name}.✅\nCurrent Points: **{new_total}**.")
+        leaderboard_logs_channel = interaction.guild.get_channel(CHANNEL_IDS["LEADERBOARD_LOG_CHANNEL"])
+        if not leaderboard_logs_channel:
+            print ("I could not find Leaderboard Log Channel")
+            return
+        await leaderboard_logs_channel.send(f"✅ Added **{points}** points to {user.mention} in {leaderboard.name}.✅\nCurrent Points: **{new_total}**.")
+
 
 class ModdedRunModal(Modal, title="Modded Run Stats"):
     h_mods = TextInput(label="Hotel Modifier %", placeholder="Ex: 300", style=discord.TextStyle.short)
@@ -146,7 +158,18 @@ class ModdedRunModal(Modal, title="Modded Run Stats"):
         points = leaderboard_rules.calc_modded_run_points(hm, hd, mm, md)
         await db_handler.set_user_points(self.target_user.id, "m", points)
         
-        await interaction.response.send_message(f"✅ The score for {self.target_user.mention} in **{LEADERBOARD_OPTIONS['m']}** has been set to **{points}** ✅")
+        await interaction.response.send_message(f"✅ The score for {self.target_user.mention} in **{LEADERBOARD_OPTIONS['m']}** has been set to **{points}** ✅", ephemeral=True)
+
+        bot_commands_channel = interaction.guild.get_channel(CHANNEL_IDS["BOT_COMMANDS_CHANNEL"])
+        if not bot_commands_channel:
+            print ("I could not find Bot Commands Channel")
+            return
+        await bot_commands_channel.send(f"✅ Added **{points}** points to {user.mention} in {leaderboard.name}.✅\nCurrent Points: **{new_total}**.")
+        leaderboard_logs_channel = interaction.guild.get_channel(CHANNEL_IDS["LEADERBOARD_LOG_CHANNEL"])
+        if not leaderboard_logs_channel:
+            print ("I could not find Leaderboard Log Channel")
+            return
+        await leaderboard_logs_channel.send(f"✅ Added **{points}** points to {user.mention} in {leaderboard.name}.✅\nCurrent Points: **{new_total}**.")
 
 
 """
