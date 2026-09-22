@@ -30,3 +30,6 @@ dist/
 
 # backup
 backup/
+
+# databases
+*.db
