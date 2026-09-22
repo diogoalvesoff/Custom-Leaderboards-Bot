@@ -57,11 +57,6 @@ SHARED_LEADERBOARD_CHOICES = [
 #################################################################################################################################
 """
 
-ROLES_WITH_PERMS_TO_USE__LEADERBOARD_PRINT = [
-    ROLE_IDS["ADMIN_ROLE_ID"],
-    ROLE_IDS["HEAD_MOD_ROLE_ID"],
-    ROLE_IDS["LEADERBOARDS_MANAGER_ROLE_ID"]
-]
 ROLES_WITH_PERMS_TO_USE__LEADERBOARD_SET = [
     ROLE_IDS["ADMIN_ROLE_ID"],
     ROLE_IDS["LEADERBOARDS_MANAGER_ROLE_ID"]

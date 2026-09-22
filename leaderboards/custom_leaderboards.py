@@ -4,7 +4,6 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
-import aiosqlite
 import asyncio
 
 from shared.hardcore_globals import GUILD_INFO, ROLE_IDS, CHANNEL_IDS
@@ -15,21 +14,10 @@ from leaderboards.leaderboards_constants import (
 )
 from leaderboards.cogs.battle import ChallengeView, CloseThreadView
 from leaderboards.cogs.leaderboard import LeaderboardView
+from leaderboards import db_handler
 
 load_dotenv()
 TOKEN = os.getenv('TOKEN')
-
-async def setup_db():
-    async with aiosqlite.connect(LEADERBOARD_DATABASE_PATH) as db:
-        await db.execute("""
-            CREATE TABLE IF NOT EXISTS leaderboards (
-                user_id TEXT,
-                leaderboard_name TEXT,
-                pts INTEGER DEFAULT 0,
-                PRIMARY KEY (user_id, leaderboard_name)
-            )
-        """)
-        await db.commit()
 
 class Client (commands.Bot):
     def __init__(self):
@@ -45,7 +33,8 @@ class Client (commands.Bot):
         self.add_view(ChallengeView())
         self.add_view(CloseThreadView())
         self.add_view(LeaderboardView())
-        await setup_db()
+        await db_handler.create_pool()
+        await db_handler.setup_db_tables()
         await self.load_extension("leaderboards.cogs.battle")
         await self.load_extension("leaderboards.cogs.leaderboard")
         await self.load_extension("leaderboards.cogs.pts")

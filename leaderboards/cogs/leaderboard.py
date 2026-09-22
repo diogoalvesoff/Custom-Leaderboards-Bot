@@ -2,13 +2,13 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 from discord.ui import Modal, TextInput
-import aiosqlite
+import asyncio
 import math
 
 from shared.hardcore_globals import GUILD_INFO, CHANNEL_IDS
 from leaderboards.leaderboards_constants import (
     LEADERBOARD_DATABASE_PATH, LEADERBOARD_OPTIONS, LEADERBOARD_EMOJIS, LEADERBOARD_NAMES, SHARED_LEADERBOARD_CHOICES,
-    ROLES_WITH_PERMS_TO_USE__LEADERBOARD_PRINT, ROLES_WITH_PERMS_TO_USE__LEADERBOARD_SET,
+    ROLES_WITH_PERMS_TO_USE__LEADERBOARD_SET,
     BUTTON_LEADERBOARD_PREVIOUS_PAGE, BUTTON_LEADERBOARD_NEXT_PAGE,
 )
 from leaderboards import db_handler
@@ -32,16 +32,8 @@ class LeaderboardView(discord.ui.View):
         offset = (current_page - 1) * 10
         embed = discord.Embed(title=f"{LEADERBOARD_OPTIONS[leaderboard_name]}")
         embed.description = "Here are the top players."
-        async with aiosqlite.connect(LEADERBOARD_DATABASE_PATH) as db:
-            query = """
-                SELECT user_id, pts
-                FROM leaderboards
-                WHERE leaderboard_name = ?
-                ORDER BY pts DESC
-                LIMIT 10 OFFSET ?
-            """
-            async with db.execute(query, (LEADERBOARD_NAMES[leaderboard_name], offset)) as cursor:
-                resultados = await cursor.fetchall()
+        
+        resultados = await db_handler.get_leaderboard_page(leaderboard_name, offset)
 
         text_lines = []
         for i, (user_id, pts) in enumerate(resultados):
@@ -187,24 +179,21 @@ class LeaderboardCog (commands.GroupCog, group_name="leaderboard", group_descrip
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    @app_commands.checks.has_any_role(*ROLES_WITH_PERMS_TO_USE__LEADERBOARD_PRINT)
     @app_commands.command(name="print", description="print leaderboard")
     @app_commands.choices(leaderboard=SHARED_LEADERBOARD_CHOICES)
     async def leaderboard_print(self, interaction: discord.Interaction, leaderboard: app_commands.Choice[str]):
         await interaction.response.defer()
 
-        async with aiosqlite.connect(LEADERBOARD_DATABASE_PATH) as db:
-            async with db.execute("SELECT COUNT(*) FROM leaderboards WHERE leaderboard_name = ?", (LEADERBOARD_NAMES[leaderboard.value],)) as cursor:
-                total_players = (await cursor.fetchone())[0]
-            if total_players == 0:
-                await interaction.followup.send("That leaderboard is empty.")
-                return
+        total_players = await db_handler.get_leaderboard_count(leaderboard.value)
+        if total_players == 0:
+            await interaction.followup.send("That leaderboard is empty.")
+            return
 
-            total_pages = math.ceil(total_players / 10)
-            view = LeaderboardView()
-            view.update_buttons(current_page=1, total_pages=total_pages)
-            initial_embed = await view.generate_page_embed(leaderboard.value, total_pages, 1)
-            await interaction.followup.send(embed=initial_embed, view=view)
+        total_pages = math.ceil(total_players / 10)
+        view = LeaderboardView()
+        view.update_buttons(current_page=1, total_pages=total_pages)
+        initial_embed = await view.generate_page_embed(leaderboard.value, total_pages, 1)
+        await interaction.followup.send(embed=initial_embed, view=view)
 
     @app_commands.checks.has_any_role(*ROLES_WITH_PERMS_TO_USE__LEADERBOARD_SET)
     @app_commands.command(name="set", description="Defines a user's points for a leaderboard, according to that leaderboard's rules.")
